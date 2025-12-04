@@ -13,9 +13,15 @@ export function CustomCursor({ style, color, customCursor }: CustomCursorProps) 
   const [position, setPosition] = useState({ x: -100, y: -100 });
   const [isHovering, setIsHovering] = useState(false);
   const [isClicking, setIsClicking] = useState(false);
-  const [isVisible, setIsVisible] = useState(false);
+  const [isVisible, setIsVisible] = useState(true); // Start visible
   const [trail, setTrail] = useState<{ x: number; y: number }[]>([]);
   const rafRef = useRef<number>(0);
+  const [mounted, setMounted] = useState(false);
+
+  // Handle hydration
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Apply custom cursor CSS
   useEffect(() => {
@@ -165,8 +171,11 @@ export function CustomCursor({ style, color, customCursor }: CustomCursorProps) 
     };
   }, [style, handleMouseMove]);
 
-  // Don't render anything for default or custom cursor
-  if (style === 'default' || style === 'custom' || !isVisible) return null;
+  // Don't render anything for default or custom cursor, or before hydration
+  if (!mounted || style === 'default' || style === 'custom') return null;
+  
+  // Don't render if position not set yet
+  if (position.x < 0 && position.y < 0) return null;
 
   const renderCursor = () => {
     switch (style) {
