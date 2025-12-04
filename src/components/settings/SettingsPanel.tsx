@@ -350,8 +350,10 @@ export function SettingsPanel() {
                   <Section title="Аватар" icon={Icons.profile}>
                     <div className="flex items-center gap-4">
                       <div 
-                        className="w-20 h-20 rounded-2xl overflow-hidden ring-2 ring-offset-2 ring-offset-black"
-                        style={{ ringColor: config.primaryColor }}
+                        className="w-20 h-20 rounded-2xl overflow-hidden"
+                        style={{ 
+                          boxShadow: `0 0 0 2px black, 0 0 0 4px ${config.primaryColor}` 
+                        }}
                       >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={config.avatar} alt="" className="w-full h-full object-cover" />
