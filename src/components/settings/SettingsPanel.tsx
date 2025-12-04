@@ -353,29 +353,43 @@ export function SettingsPanel() {
                 <>
                   {/* Avatar Section */}
                   <Section title="Аватар" icon={Icons.profile}>
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-4 mb-3">
                       <div 
-                        className="w-20 h-20 rounded-2xl overflow-hidden"
+                        className="w-20 h-20 rounded-2xl overflow-hidden flex-shrink-0"
                         style={{ 
                           boxShadow: `0 0 0 2px black, 0 0 0 4px ${editConfig.primaryColor}` 
                         }}
                       >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={editConfig.avatar} alt="" className="w-full h-full object-cover" />
+                        <img 
+                          src={editConfig.avatar || '/avatar.svg'} 
+                          alt="" 
+                          className="w-full h-full object-cover"
+                          onError={(e) => { (e.target as HTMLImageElement).src = '/avatar.svg'; }}
+                        />
                       </div>
                       <div className="flex-1 space-y-2">
                         <button
                           onClick={() => avatarInputRef.current?.click()}
-                          className="w-full px-4 py-2.5 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-all hover:scale-[1.02]"
+                          className="w-full px-4 py-2 rounded-lg text-xs font-medium flex items-center justify-center gap-2 transition-all hover:scale-[1.02]"
                           style={{ background: `${editConfig.primaryColor}20`, color: editConfig.primaryColor, border: `1px solid ${editConfig.primaryColor}30` }}
                         >
                           {Icons.upload}
-                          Загрузить
+                          Файл (только для вас)
                         </button>
                         <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, 'avatar')} />
-                        <p className="text-[10px] text-white/30 text-center">PNG, JPG до 5MB</p>
                       </div>
                     </div>
+                    <input
+                      type="text"
+                      value={editConfig.avatar?.startsWith('data:') ? '' : (editConfig.avatar || '')}
+                      onChange={(e) => setConfig({ avatar: e.target.value })}
+                      placeholder="URL аватара (рекомендуется для всех)"
+                      className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm"
+                    />
+                    <p className="text-[10px] text-white/40 mt-1">
+                      💡 Вставьте ссылку на картинку (imgur, Discord)
+                    </p>
                   </Section>
 
                   {/* Info Section */}
@@ -452,10 +466,17 @@ export function SettingsPanel() {
                             className="px-3 py-1.5 rounded-lg text-xs transition-all"
                             style={{ background: `${editConfig.primaryColor}15`, color: editConfig.primaryColor }}
                           >
-                            Изменить аватар
+                            Файл
                           </button>
                           <input ref={discordAvatarInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, 'discordAvatar')} />
                         </div>
+                        <input
+                          type="text"
+                          value={editConfig.discordAvatar?.startsWith('data:') ? '' : (editConfig.discordAvatar || '')}
+                          onChange={(e) => setConfig({ discordAvatar: e.target.value })}
+                          placeholder="URL аватара Discord (для всех)"
+                          className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm"
+                        />
                         <input
                           type="text"
                           value={editConfig.discordUsername}
@@ -741,11 +762,19 @@ export function SettingsPanel() {
                     </div>
                     {editConfig.cursorStyle === 'custom' && (
                       <>
+                        <input
+                          type="text"
+                          value={editConfig.customCursor?.startsWith('data:') ? '' : (editConfig.customCursor || '')}
+                          onChange={(e) => setConfig({ customCursor: e.target.value })}
+                          placeholder="URL курсора PNG (для всех)"
+                          className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm mb-2"
+                        />
+                        <div className="text-center text-white/30 text-xs mb-2">или</div>
                         <button
                           onClick={() => cursorInputRef.current?.click()}
-                          className="w-full px-4 py-2.5 rounded-lg text-sm border border-dashed border-white/20 flex items-center justify-center gap-2 hover:border-white/30 transition-all"
+                          className="w-full px-4 py-2 rounded-lg text-xs border border-dashed border-white/20 flex items-center justify-center gap-2 hover:border-white/30 transition-all"
                         >
-                          {config.customCursor ? <><span className="text-green-400">{Icons.check}</span> Загружено</> : <>{Icons.upload} Загрузить PNG</>}
+                          {editConfig.customCursor ? <><span className="text-green-400">{Icons.check}</span> Загружено</> : <>{Icons.upload} Файл (только для вас)</>}
                         </button>
                         <input ref={cursorInputRef} type="file" accept="image/png" className="hidden" onChange={(e) => handleFileUpload(e, 'cursor')} />
                       </>
