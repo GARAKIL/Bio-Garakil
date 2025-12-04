@@ -144,6 +144,7 @@ export function BioPage() {
   const { viewCount } = useViewCounter();
   const [mounted, setMounted] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [showClickScreen, setShowClickScreen] = useState(true); // Экран "Click Anywhere"
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const keySequenceRef = useRef<string[]>([]);
 
@@ -151,6 +152,26 @@ export function BioPage() {
   useEffect(() => {
     loadConfigFromServer();
   }, [loadConfigFromServer]);
+
+  // Обработка клика на экране "Click Anywhere"
+  const handleEnterSite = useCallback(() => {
+    setShowClickScreen(false);
+    
+    // Запускаем музыку после клика
+    if (config.musicUrl && config.musicAutoPlay && !audioRef.current) {
+      const audio = new Audio(config.musicUrl);
+      audio.volume = config.musicVolume / 100;
+      audio.loop = true;
+      audioRef.current = audio;
+      
+      audio.play().then(() => {
+        setIsPlaying(true);
+        console.log('Music started after click!');
+      }).catch((e) => {
+        console.log('Music play failed:', e);
+      });
+    }
+  }, [config.musicUrl, config.musicAutoPlay, config.musicVolume]);
 
   // Shift + ↑↑↓↓ для открытия настроек (два раза вверх, два раза вниз)
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
@@ -221,64 +242,6 @@ export function BioPage() {
     };
   }, [playMusic]);
 
-  // Auto play music on mount if configured
-  const autoPlayTriedRef = useRef(false);
-  
-  useEffect(() => {
-    if (!mounted || !config.musicUrl || !config.musicAutoPlay) return;
-    if (autoPlayTriedRef.current) return;
-    
-    autoPlayTriedRef.current = true;
-    
-    // Создаем аудио если его нет
-    if (!audioRef.current) {
-      const audio = new Audio(config.musicUrl);
-      audio.volume = config.musicVolume / 100;
-      audio.loop = true;
-      audioRef.current = audio;
-    }
-    
-    let started = false;
-    
-    // Функция для запуска музыки
-    const startMusic = () => {
-      if (started || !audioRef.current) return;
-      
-      audioRef.current.play().then(() => {
-        started = true;
-        setIsPlaying(true);
-        console.log('Music autoplay started!');
-        cleanup();
-      }).catch((e) => {
-        console.log('Autoplay blocked:', e.message);
-      });
-    };
-    
-    // Cleanup функция
-    const cleanup = () => {
-      document.removeEventListener('click', startMusic);
-      document.removeEventListener('touchstart', startMusic);
-      document.removeEventListener('keydown', startMusic);
-      document.removeEventListener('mousemove', startMusic);
-      document.removeEventListener('scroll', startMusic);
-    };
-    
-    // Пробуем через 1 секунду
-    const timer = setTimeout(startMusic, 1000);
-    
-    // Слушаем любое взаимодействие
-    document.addEventListener('click', startMusic);
-    document.addEventListener('touchstart', startMusic);
-    document.addEventListener('keydown', startMusic);
-    document.addEventListener('mousemove', startMusic, { once: true });
-    document.addEventListener('scroll', startMusic, { once: true });
-    
-    return () => {
-      clearTimeout(timer);
-      cleanup();
-    };
-  }, [mounted, config.musicUrl, config.musicAutoPlay, config.musicVolume]);
-
   // Update volume when changed
   useEffect(() => {
     if (audioRef.current) {
@@ -343,6 +306,80 @@ export function BioPage() {
   }
 
   const enabledLinks = config.links.filter(l => l.enabled);
+
+  // Экран "Click Anywhere" для запуска музыки
+  if (showClickScreen) {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="fixed inset-0 z-50 flex items-center justify-center cursor-pointer"
+        style={{ 
+          background: `linear-gradient(135deg, ${config.primaryColor}40 0%, ${config.backgroundColor} 50%, ${config.secondaryColor}40 100%)`,
+          backgroundColor: config.backgroundColor,
+        }}
+        onClick={handleEnterSite}
+      >
+        {/* Фоновые частицы */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {[...Array(20)].map((_, i) => (
+            <motion.div
+              key={i}
+              className="absolute w-1 h-1 rounded-full"
+              style={{ 
+                background: config.primaryColor,
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+              }}
+              animate={{
+                y: [0, -30, 0],
+                opacity: [0.2, 0.8, 0.2],
+                scale: [1, 1.5, 1],
+              }}
+              transition={{
+                duration: 2 + Math.random() * 2,
+                repeat: Infinity,
+                delay: Math.random() * 2,
+              }}
+            />
+          ))}
+        </div>
+        
+        <motion.div
+          className="text-center z-10"
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ delay: 0.2, type: 'spring' }}
+        >
+          <motion.h1
+            className="text-4xl md:text-6xl font-bold mb-4"
+            style={{ 
+              color: config.primaryColor,
+              textShadow: `0 0 30px ${config.primaryColor}80, 0 0 60px ${config.primaryColor}40`,
+            }}
+            animate={{ 
+              textShadow: [
+                `0 0 30px ${config.primaryColor}80, 0 0 60px ${config.primaryColor}40`,
+                `0 0 50px ${config.primaryColor}90, 0 0 80px ${config.primaryColor}60`,
+                `0 0 30px ${config.primaryColor}80, 0 0 60px ${config.primaryColor}40`,
+              ]
+            }}
+            transition={{ duration: 2, repeat: Infinity }}
+          >
+            Click Anywhere
+          </motion.h1>
+          
+          <motion.p
+            className="text-white/50 text-sm"
+            animate={{ opacity: [0.5, 1, 0.5] }}
+            transition={{ duration: 1.5, repeat: Infinity }}
+          >
+            нажмите чтобы войти
+          </motion.p>
+        </motion.div>
+      </motion.div>
+    );
+  }
 
   return (
     <main className="relative min-h-screen flex flex-col items-center justify-center p-4 overflow-hidden">
