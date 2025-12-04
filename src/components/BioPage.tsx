@@ -467,9 +467,6 @@ export function BioPage() {
                     <span className="font-semibold truncate" style={{ color: config.textColor }}>
                       {config.discordUsername || config.username || 'User'}
                     </span>
-                    {config.discordBadges?.includes('nitro') && (
-                      <span className="px-1.5 py-0.5 text-xs rounded flex-shrink-0" style={{ background: `${config.accentColor}30`, color: config.accentColor }}>NITRO</span>
-                    )}
                   </div>
                   <p className="text-sm truncate flex items-center gap-1" style={{ color: `${config.textColor}99` }}>
                     <GlobeIcon size={12} />
