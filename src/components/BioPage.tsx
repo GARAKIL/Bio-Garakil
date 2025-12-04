@@ -153,23 +153,32 @@ export function BioPage() {
     loadConfigFromServer();
   }, [loadConfigFromServer]);
 
-  // Анимация заголовка вкладки
+  // Анимация заголовка вкладки - печатающийся текст
   useEffect(() => {
     if (!mounted) return;
     
-    const titles = [
-      'Bio-GARAKIL',
-      'Bio-GARAKIL ✨',
-      'Bio-GARAKIL ⭐',
-      'Bio-GARAKIL 🔥',
-      'Bio-GARAKIL 💎',
-    ];
-    let index = 0;
+    const text = 'Bio-GARAKIL';
+    let charIndex = 0;
+    let isDeleting = false;
     
     const interval = setInterval(() => {
-      document.title = titles[index];
-      index = (index + 1) % titles.length;
-    }, 1000);
+      if (!isDeleting) {
+        // Печатаем текст
+        document.title = text.substring(0, charIndex + 1);
+        charIndex++;
+        if (charIndex >= text.length) {
+          // Пауза перед удалением
+          setTimeout(() => { isDeleting = true; }, 1500);
+        }
+      } else {
+        // Удаляем текст
+        document.title = text.substring(0, charIndex);
+        charIndex--;
+        if (charIndex <= 0) {
+          isDeleting = false;
+        }
+      }
+    }, 150);
     
     return () => clearInterval(interval);
   }, [mounted]);
@@ -179,18 +188,28 @@ export function BioPage() {
     setVerificationStep('done');
     
     // Запускаем музыку после клика
-    if (config.musicUrl && config.musicAutoPlay && !audioRef.current) {
+    if (config.musicUrl && config.musicAutoPlay) {
+      // Останавливаем предыдущее аудио если есть
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+      
       const audio = new Audio(config.musicUrl);
       audio.volume = config.musicVolume / 100;
       audio.loop = true;
       audioRef.current = audio;
       
-      audio.play().then(() => {
-        setIsPlaying(true);
-        console.log('Music started after click!');
-      }).catch((e) => {
-        console.log('Music play failed:', e);
-      });
+      // Используем setTimeout для гарантии после user interaction
+      setTimeout(() => {
+        audio.play().then(() => {
+          setIsPlaying(true);
+          console.log('Music started after click!');
+        }).catch((e) => {
+          console.log('Music play failed:', e);
+          setIsPlaying(false);
+        });
+      }, 100);
     }
   }, [config.musicUrl, config.musicAutoPlay, config.musicVolume]);
 
