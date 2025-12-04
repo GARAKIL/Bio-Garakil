@@ -222,53 +222,62 @@ export function BioPage() {
   }, [playMusic]);
 
   // Auto play music on mount if configured
+  const autoPlayTriedRef = useRef(false);
+  
   useEffect(() => {
-    if (!mounted || !config.musicUrl || !config.musicAutoPlay || audioRef.current) return;
+    if (!mounted || !config.musicUrl || !config.musicAutoPlay) return;
+    if (autoPlayTriedRef.current) return;
     
-    const audio = new Audio(config.musicUrl);
-    audio.volume = config.musicVolume / 100;
-    audio.loop = true;
-    audioRef.current = audio;
+    autoPlayTriedRef.current = true;
     
-    // Пробуем автовоспроизведение
-    const tryAutoPlay = () => {
-      if (!audioRef.current || isPlaying) return;
+    // Создаем аудио если его нет
+    if (!audioRef.current) {
+      const audio = new Audio(config.musicUrl);
+      audio.volume = config.musicVolume / 100;
+      audio.loop = true;
+      audioRef.current = audio;
+    }
+    
+    let started = false;
+    
+    // Функция для запуска музыки
+    const startMusic = () => {
+      if (started || !audioRef.current) return;
       
       audioRef.current.play().then(() => {
+        started = true;
         setIsPlaying(true);
-        console.log('Autoplay started!');
-        // Убираем слушатели если успешно
-        document.removeEventListener('click', tryAutoPlay);
-        document.removeEventListener('touchstart', tryAutoPlay);
-        document.removeEventListener('keydown', tryAutoPlay);
-        document.removeEventListener('mousemove', tryAutoPlay);
-        document.removeEventListener('scroll', tryAutoPlay);
+        console.log('Music autoplay started!');
+        cleanup();
       }).catch((e) => {
-        console.log('Autoplay blocked, waiting for user interaction...', e);
+        console.log('Autoplay blocked:', e.message);
       });
     };
     
-    // Ждём 1 секунду и пробуем запустить
-    const timer = setTimeout(() => {
-      tryAutoPlay();
-    }, 1000);
+    // Cleanup функция
+    const cleanup = () => {
+      document.removeEventListener('click', startMusic);
+      document.removeEventListener('touchstart', startMusic);
+      document.removeEventListener('keydown', startMusic);
+      document.removeEventListener('mousemove', startMusic);
+      document.removeEventListener('scroll', startMusic);
+    };
     
-    // Также слушаем любое взаимодействие пользователя
-    document.addEventListener('click', tryAutoPlay);
-    document.addEventListener('touchstart', tryAutoPlay);
-    document.addEventListener('keydown', tryAutoPlay);
-    document.addEventListener('mousemove', tryAutoPlay, { once: true });
-    document.addEventListener('scroll', tryAutoPlay, { once: true });
+    // Пробуем через 1 секунду
+    const timer = setTimeout(startMusic, 1000);
+    
+    // Слушаем любое взаимодействие
+    document.addEventListener('click', startMusic);
+    document.addEventListener('touchstart', startMusic);
+    document.addEventListener('keydown', startMusic);
+    document.addEventListener('mousemove', startMusic, { once: true });
+    document.addEventListener('scroll', startMusic, { once: true });
     
     return () => {
       clearTimeout(timer);
-      document.removeEventListener('click', tryAutoPlay);
-      document.removeEventListener('touchstart', tryAutoPlay);
-      document.removeEventListener('keydown', tryAutoPlay);
-      document.removeEventListener('mousemove', tryAutoPlay);
-      document.removeEventListener('scroll', tryAutoPlay);
+      cleanup();
     };
-  }, [mounted, config.musicUrl, config.musicAutoPlay, config.musicVolume, isPlaying]);
+  }, [mounted, config.musicUrl, config.musicAutoPlay, config.musicVolume]);
 
   // Update volume when changed
   useEffect(() => {
