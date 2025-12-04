@@ -144,7 +144,7 @@ export function BioPage() {
   const { viewCount } = useViewCounter();
   const [mounted, setMounted] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [verificationStep, setVerificationStep] = useState<'captcha' | 'click' | 'done'>('captcha'); // Этапы: captcha -> click -> done
+  const [verificationStep, setVerificationStep] = useState<'click' | 'done'>('click'); // Этапы: click -> done
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const keySequenceRef = useRef<string[]>([]);
 
@@ -173,11 +173,6 @@ export function BioPage() {
     
     return () => clearInterval(interval);
   }, [mounted]);
-
-  // Проверка капчи (простая - нажатие кнопки)
-  const handleCaptchaVerify = useCallback(() => {
-    setVerificationStep('click');
-  }, []);
 
   // Обработка клика на экране "Click Anywhere"
   const handleEnterSite = useCallback(() => {
@@ -335,123 +330,6 @@ export function BioPage() {
   }
 
   const enabledLinks = config.links.filter(l => l.enabled);
-
-  // Экран CAPTCHA - проверка на бота
-  if (verificationStep === 'captcha') {
-    return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="fixed inset-0 z-50 flex items-center justify-center"
-        style={{ 
-          background: `linear-gradient(135deg, ${config.primaryColor}20 0%, #0a0a0a 50%, ${config.secondaryColor}20 100%)`,
-          backgroundColor: '#0a0a0a',
-        }}
-      >
-        {/* Фоновые частицы */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          {[...Array(15)].map((_, i) => (
-            <motion.div
-              key={i}
-              className="absolute w-1 h-1 rounded-full"
-              style={{ 
-                background: config.primaryColor,
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-              }}
-              animate={{
-                y: [0, -20, 0],
-                opacity: [0.1, 0.5, 0.1],
-              }}
-              transition={{
-                duration: 3 + Math.random() * 2,
-                repeat: Infinity,
-                delay: Math.random() * 2,
-              }}
-            />
-          ))}
-        </div>
-        
-        <motion.div
-          className="relative z-10 p-8 rounded-2xl text-center max-w-sm mx-4"
-          style={{
-            background: 'rgba(20,20,20,0.9)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            boxShadow: `0 0 40px ${config.primaryColor}20`,
-          }}
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: 'spring', duration: 0.5 }}
-        >
-          {/* Иконка щита */}
-          <motion.div
-            className="w-16 h-16 mx-auto mb-6 rounded-full flex items-center justify-center"
-            style={{
-              background: `linear-gradient(135deg, ${config.primaryColor}30, ${config.secondaryColor}30)`,
-              border: `2px solid ${config.primaryColor}50`,
-            }}
-            animate={{
-              boxShadow: [
-                `0 0 20px ${config.primaryColor}30`,
-                `0 0 40px ${config.primaryColor}50`,
-                `0 0 20px ${config.primaryColor}30`,
-              ],
-            }}
-            transition={{ duration: 2, repeat: Infinity }}
-          >
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={config.primaryColor} strokeWidth="2">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-              <path d="M9 12l2 2 4-4"/>
-            </svg>
-          </motion.div>
-          
-          <h2 
-            className="text-2xl font-bold mb-2"
-            style={{ color: config.textColor }}
-          >
-            Проверка безопасности
-          </h2>
-          
-          <p 
-            className="text-sm mb-6 opacity-60"
-            style={{ color: config.textColor }}
-          >
-            Подтвердите, что вы не робот
-          </p>
-          
-          <motion.button
-            onClick={handleCaptchaVerify}
-            className="w-full py-3 px-6 rounded-xl font-medium transition-all duration-300"
-            style={{
-              background: `linear-gradient(135deg, ${config.primaryColor}, ${config.secondaryColor})`,
-              color: '#fff',
-              boxShadow: `0 4px 20px ${config.primaryColor}40`,
-            }}
-            whileHover={{ 
-              scale: 1.02,
-              boxShadow: `0 6px 30px ${config.primaryColor}60`,
-            }}
-            whileTap={{ scale: 0.98 }}
-          >
-            <span className="flex items-center justify-center gap-2">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M9 12l2 2 4-4"/>
-                <rect x="3" y="3" width="18" height="18" rx="2"/>
-              </svg>
-              Я не робот
-            </span>
-          </motion.button>
-          
-          <p 
-            className="text-xs mt-4 opacity-40"
-            style={{ color: config.textColor }}
-          >
-            Защита от автоматических запросов
-          </p>
-        </motion.div>
-      </motion.div>
-    );
-  }
 
   // Экран "Click Anywhere" для запуска музыки
   if (verificationStep === 'click') {
