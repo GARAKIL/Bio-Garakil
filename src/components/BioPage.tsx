@@ -223,18 +223,43 @@ export function BioPage() {
 
   // Auto play music on mount if configured
   useEffect(() => {
-    if (mounted && config.musicUrl && config.musicAutoPlay && !audioRef.current) {
-      const audio = new Audio(config.musicUrl);
-      audio.volume = config.musicVolume / 100;
-      audio.loop = true;
-      audioRef.current = audio;
+    if (!mounted || !config.musicUrl || !config.musicAutoPlay || audioRef.current) return;
+    
+    const audio = new Audio(config.musicUrl);
+    audio.volume = config.musicVolume / 100;
+    audio.loop = true;
+    audioRef.current = audio;
+    
+    // Пробуем автовоспроизведение
+    const tryAutoPlay = () => {
+      if (!audioRef.current) return;
       
-      audio.play().then(() => {
+      audioRef.current.play().then(() => {
         setIsPlaying(true);
-      }).catch(() => {
+        console.log('Autoplay started!');
+        // Убираем слушатели если успешно
+        document.removeEventListener('click', tryAutoPlay);
+        document.removeEventListener('touchstart', tryAutoPlay);
+        document.removeEventListener('keydown', tryAutoPlay);
+      }).catch((e) => {
+        console.log('Autoplay blocked, waiting for user interaction...', e);
         setIsPlaying(false);
       });
-    }
+    };
+    
+    // Сначала пробуем сразу
+    tryAutoPlay();
+    
+    // Если не получилось - ждём первый клик/тап/нажатие клавиши
+    document.addEventListener('click', tryAutoPlay, { once: false });
+    document.addEventListener('touchstart', tryAutoPlay, { once: false });
+    document.addEventListener('keydown', tryAutoPlay, { once: false });
+    
+    return () => {
+      document.removeEventListener('click', tryAutoPlay);
+      document.removeEventListener('touchstart', tryAutoPlay);
+      document.removeEventListener('keydown', tryAutoPlay);
+    };
   }, [mounted, config.musicUrl, config.musicAutoPlay, config.musicVolume]);
 
   // Update volume when changed
