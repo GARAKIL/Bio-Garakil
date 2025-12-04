@@ -1,20 +1,30 @@
 import { create } from 'zustand';
 import { SiteConfig, defaultConfig } from '@/types/config';
 
-// Поля с большими данными - сохраняем только в localStorage
-const LARGE_DATA_FIELDS: (keyof SiteConfig)[] = ['backgroundImage', 'backgroundVideo', 'musicUrl', 'customCursor', 'discordAvatar', 'avatar'];
+// Поля с большими данными - сохраняем только в localStorage (только base64)
+const LOCAL_ONLY_FIELDS: (keyof SiteConfig)[] = ['backgroundVideo', 'customCursor'];
 
-// Сохранить большие данные в localStorage
+// Сохранить большие base64 данные в localStorage
 function saveLargeDataToLocal(config: Partial<SiteConfig>) {
   if (typeof window === 'undefined') return;
   
   try {
-    const largeData: Partial<SiteConfig> = {};
-    for (const field of LARGE_DATA_FIELDS) {
-      if (config[field]) {
-        largeData[field] = config[field] as string;
+    const largeData: Record<string, string> = {};
+    for (const field of LOCAL_ONLY_FIELDS) {
+      const value = config[field] as string | undefined;
+      // Сохраняем только base64 данные
+      if (value && value.startsWith('data:')) {
+        largeData[field] = value;
       }
     }
+    // Также сохраняем большие base64 для фона и музыки если они есть
+    if (config.backgroundImage && (config.backgroundImage as string).startsWith('data:')) {
+      largeData.backgroundImage = config.backgroundImage;
+    }
+    if (config.musicUrl && (config.musicUrl as string).startsWith('data:')) {
+      largeData.musicUrl = config.musicUrl;
+    }
+    
     if (Object.keys(largeData).length > 0) {
       localStorage.setItem('bio-large-data', JSON.stringify(largeData));
     }
@@ -128,25 +138,34 @@ export const useConfigStore = create<ConfigStore>()((set, get) => ({
       console.log('loadConfigFromServer response:', data);
       
       if (data.success && data.data) {
-        // Загружаем большие данные из localStorage
-        const largeData = loadLargeDataFromLocal();
-        const loadedConfig = { ...defaultConfig, ...data.data, ...largeData };
+        // Загружаем конфиг с сервера
+        let loadedConfig = { ...defaultConfig, ...data.data };
+        
+        // Загружаем локальные base64 данные (только если на сервере пусто)
+        const localData = loadLargeDataFromLocal();
+        for (const [key, value] of Object.entries(localData)) {
+          // Применяем локальные данные только если серверные пусты
+          if (!loadedConfig[key as keyof SiteConfig]) {
+            (loadedConfig as Record<string, unknown>)[key] = value;
+          }
+        }
+        
         console.log('Loaded config cursorStyle:', loadedConfig.cursorStyle);
         set({ config: loadedConfig, draftConfig: loadedConfig });
       } else {
         // Если на сервере нет данных, пробуем загрузить из localStorage
-        const largeData = loadLargeDataFromLocal();
-        if (Object.keys(largeData).length > 0) {
-          const loadedConfig = { ...defaultConfig, ...largeData };
+        const localData = loadLargeDataFromLocal();
+        if (Object.keys(localData).length > 0) {
+          const loadedConfig = { ...defaultConfig, ...localData };
           set({ config: loadedConfig, draftConfig: loadedConfig });
         }
       }
     } catch (error) {
       console.error('Failed to load config:', error);
       // При ошибке пробуем localStorage
-      const largeData = loadLargeDataFromLocal();
-      if (Object.keys(largeData).length > 0) {
-        const loadedConfig = { ...defaultConfig, ...largeData };
+      const localData = loadLargeDataFromLocal();
+      if (Object.keys(localData).length > 0) {
+        const loadedConfig = { ...defaultConfig, ...localData };
         set({ config: loadedConfig, draftConfig: loadedConfig });
       }
     } finally {

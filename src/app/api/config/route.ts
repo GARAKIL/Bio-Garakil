@@ -5,7 +5,8 @@ const CONFIG_KEY = 'bio-site-config';
 const ADMIN_PASSWORD = 'Qwerty22';
 
 // Поля с большими данными (base64), которые не сохраняем в KV
-const LARGE_DATA_FIELDS = ['backgroundImage', 'backgroundVideo', 'musicUrl', 'customCursor', 'discordAvatar', 'avatar'];
+// URL-ы сохраняем!
+const LARGE_DATA_FIELDS = ['backgroundVideo', 'customCursor', 'discordAvatar'];
 
 // Check if KV is available
 function isKVAvailable(): boolean {
@@ -13,17 +14,21 @@ function isKVAvailable(): boolean {
 }
 
 // Фильтрует большие base64 данные перед сохранением
+// URL-ы (http/https) сохраняются!
 function filterLargeData(config: Record<string, unknown>): Record<string, unknown> {
   const filtered = { ...config };
-  for (const field of LARGE_DATA_FIELDS) {
-    if (filtered[field] && typeof filtered[field] === 'string') {
-      const value = filtered[field] as string;
-      // Если это base64 данные (больше 1KB) - не сохраняем
-      if (value.startsWith('data:') && value.length > 1000) {
-        filtered[field] = ''; // Очищаем
+  
+  // Проверяем все поля на наличие base64 данных
+  for (const [key, value] of Object.entries(filtered)) {
+    if (typeof value === 'string' && value.startsWith('data:') && value.length > 5000) {
+      // Это base64 данные - не сохраняем (кроме аватара до 50KB)
+      if (key === 'avatar' && value.length < 50000) {
+        continue; // Маленький аватар можно сохранить
       }
+      filtered[key] = ''; // Очищаем большие base64
     }
   }
+  
   return filtered;
 }
 

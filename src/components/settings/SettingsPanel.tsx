@@ -541,9 +541,23 @@ export function SettingsPanel() {
                   {/* Image Upload */}
                   {editConfig.backgroundType === 'image' && (
                     <Section title="Изображение" icon={Icons.image}>
+                      {/* URL Input */}
+                      <input
+                        type="text"
+                        value={editConfig.backgroundImage?.startsWith('data:') ? '' : (editConfig.backgroundImage || '')}
+                        onChange={(e) => setConfig({ backgroundImage: e.target.value })}
+                        placeholder="Вставьте URL изображения (рекомендуется)"
+                        className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm mb-2"
+                      />
+                      <p className="text-[10px] text-white/40 mb-3">
+                        💡 Загрузите на imgur.com или Discord и вставьте ссылку
+                      </p>
+                      
+                      <div className="text-center text-white/30 text-xs mb-2">или</div>
+                      
                       <button
                         onClick={() => backgroundInputRef.current?.click()}
-                        className="w-full h-32 rounded-xl border-2 border-dashed border-white/10 flex flex-col items-center justify-center text-sm text-white/40 hover:border-white/20 hover:text-white/60 transition-all overflow-hidden"
+                        className="w-full h-24 rounded-xl border-2 border-dashed border-white/10 flex flex-col items-center justify-center text-sm text-white/40 hover:border-white/20 hover:text-white/60 transition-all overflow-hidden"
                         style={editConfig.backgroundImage ? { 
                           backgroundImage: `url(${editConfig.backgroundImage})`, 
                           backgroundSize: 'cover', 
@@ -555,7 +569,7 @@ export function SettingsPanel() {
                         {!editConfig.backgroundImage && (
                           <>
                             {Icons.upload}
-                            <span className="mt-2">Нажмите для загрузки</span>
+                            <span className="mt-1 text-xs">Загрузить файл (только для вас)</span>
                           </>
                         )}
                       </button>
@@ -725,9 +739,23 @@ export function SettingsPanel() {
                   </Section>
 
                   <Section title="Музыка" icon={Icons.music}>
+                    {/* URL Input for music */}
+                    <input
+                      type="text"
+                      value={editConfig.musicUrl?.startsWith('data:') ? '' : (editConfig.musicUrl || '')}
+                      onChange={(e) => setConfig({ musicUrl: e.target.value, musicEnabled: !!e.target.value })}
+                      placeholder="Вставьте URL аудио (MP3)"
+                      className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm mb-2"
+                    />
+                    <p className="text-[10px] text-white/40 mb-3">
+                      💡 Загрузите MP3 на файлообменник и вставьте прямую ссылку
+                    </p>
+                    
+                    <div className="text-center text-white/30 text-xs mb-2">или</div>
+                    
                     <button
                       onClick={() => musicInputRef.current?.click()}
-                      className="w-full px-4 py-3 rounded-lg text-sm border border-dashed border-white/20 flex items-center justify-center gap-2 hover:border-white/30 transition-all mb-3"
+                      className="w-full px-4 py-2.5 rounded-lg text-sm border border-dashed border-white/20 flex items-center justify-center gap-2 hover:border-white/30 transition-all mb-3"
                     >
                       {editConfig.musicUrl ? (
                         <span className="flex items-center gap-2">
@@ -735,7 +763,7 @@ export function SettingsPanel() {
                           {editConfig.musicTitle || 'Трек загружен'}
                         </span>
                       ) : (
-                        <>{Icons.upload} Загрузить MP3</>
+                        <>{Icons.upload} Загрузить файл (только для вас)</>
                       )}
                     </button>
                     <input ref={musicInputRef} type="file" accept="audio/*" className="hidden" onChange={(e) => handleFileUpload(e, 'music')} />
