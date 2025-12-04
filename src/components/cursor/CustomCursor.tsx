@@ -43,8 +43,23 @@ export function CustomCursor({ style, color, customCursor }: CustomCursorProps) 
     
     // Custom cursor image
     if (style === 'custom' && customCursor) {
+      console.log('Loading custom cursor:', customCursor.substring(0, 50));
+      
+      // Если это URL (не base64), используем напрямую
+      if (customCursor.startsWith('http')) {
+        const styleEl = document.createElement('style');
+        styleEl.id = 'custom-cursor-style';
+        styleEl.textContent = `* { cursor: url("${customCursor}") 16 16, auto !important; }`;
+        document.head.appendChild(styleEl);
+        console.log('Applied URL cursor directly');
+        return;
+      }
+      
+      // Для base64 - рисуем на canvas
       const img = new Image();
+      img.crossOrigin = 'anonymous';
       img.onload = () => {
+        console.log('Custom cursor image loaded, size:', img.width, img.height);
         const canvas = document.createElement('canvas');
         const size = 32;
         canvas.width = size;
@@ -60,7 +75,16 @@ export function CustomCursor({ style, color, customCursor }: CustomCursorProps) 
           styleEl.id = 'custom-cursor-style';
           styleEl.textContent = `* { cursor: url("${dataUrl}") 16 16, auto !important; }`;
           document.head.appendChild(styleEl);
+          console.log('Applied canvas cursor');
         }
+      };
+      img.onerror = (e) => {
+        console.error('Failed to load custom cursor:', e);
+        // Fallback - try direct URL
+        const styleEl = document.createElement('style');
+        styleEl.id = 'custom-cursor-style';
+        styleEl.textContent = `* { cursor: url("${customCursor}") 16 16, auto !important; }`;
+        document.head.appendChild(styleEl);
       };
       img.src = customCursor;
       return;
