@@ -232,7 +232,7 @@ export function BioPage() {
     
     // Пробуем автовоспроизведение
     const tryAutoPlay = () => {
-      if (!audioRef.current) return;
+      if (!audioRef.current || isPlaying) return;
       
       audioRef.current.play().then(() => {
         setIsPlaying(true);
@@ -241,26 +241,34 @@ export function BioPage() {
         document.removeEventListener('click', tryAutoPlay);
         document.removeEventListener('touchstart', tryAutoPlay);
         document.removeEventListener('keydown', tryAutoPlay);
+        document.removeEventListener('mousemove', tryAutoPlay);
+        document.removeEventListener('scroll', tryAutoPlay);
       }).catch((e) => {
         console.log('Autoplay blocked, waiting for user interaction...', e);
-        setIsPlaying(false);
       });
     };
     
-    // Сначала пробуем сразу
-    tryAutoPlay();
+    // Ждём 1 секунду и пробуем запустить
+    const timer = setTimeout(() => {
+      tryAutoPlay();
+    }, 1000);
     
-    // Если не получилось - ждём первый клик/тап/нажатие клавиши
-    document.addEventListener('click', tryAutoPlay, { once: false });
-    document.addEventListener('touchstart', tryAutoPlay, { once: false });
-    document.addEventListener('keydown', tryAutoPlay, { once: false });
+    // Также слушаем любое взаимодействие пользователя
+    document.addEventListener('click', tryAutoPlay);
+    document.addEventListener('touchstart', tryAutoPlay);
+    document.addEventListener('keydown', tryAutoPlay);
+    document.addEventListener('mousemove', tryAutoPlay, { once: true });
+    document.addEventListener('scroll', tryAutoPlay, { once: true });
     
     return () => {
+      clearTimeout(timer);
       document.removeEventListener('click', tryAutoPlay);
       document.removeEventListener('touchstart', tryAutoPlay);
       document.removeEventListener('keydown', tryAutoPlay);
+      document.removeEventListener('mousemove', tryAutoPlay);
+      document.removeEventListener('scroll', tryAutoPlay);
     };
-  }, [mounted, config.musicUrl, config.musicAutoPlay, config.musicVolume]);
+  }, [mounted, config.musicUrl, config.musicAutoPlay, config.musicVolume, isPlaying]);
 
   // Update volume when changed
   useEffect(() => {
