@@ -588,17 +588,31 @@ export function SettingsPanel() {
                   {/* Video Upload */}
                   {editConfig.backgroundType === 'video' && (
                     <Section title="Видео" icon={Icons.video}>
+                      {/* URL Input */}
+                      <input
+                        type="text"
+                        value={editConfig.backgroundVideo?.startsWith('blob:') ? '' : (editConfig.backgroundVideo || '')}
+                        onChange={(e) => setConfig({ backgroundVideo: e.target.value })}
+                        placeholder="Вставьте URL видео (MP4, WebM)"
+                        className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm mb-2"
+                      />
+                      <p className="text-[10px] text-white/40 mb-3">
+                        💡 Загрузите видео на streamable.com или catbox.moe
+                      </p>
+                      
+                      <div className="text-center text-white/30 text-xs mb-2">или</div>
+                      
                       <button
                         onClick={() => videoInputRef.current?.click()}
-                        className="w-full h-32 rounded-xl border-2 border-dashed border-white/10 flex flex-col items-center justify-center text-sm text-white/40 hover:border-white/20 transition-all"
+                        className="w-full h-20 rounded-xl border-2 border-dashed border-white/10 flex flex-col items-center justify-center text-sm text-white/40 hover:border-white/20 transition-all"
                         style={editConfig.backgroundVideo ? { borderColor: `${editConfig.primaryColor}40`, borderStyle: 'solid' } : {}}
                       >
                         {editConfig.backgroundVideo ? (
-                          <span className="flex items-center gap-2 text-green-400">{Icons.check} Видео загружено</span>
+                          <span className="flex items-center gap-2 text-green-400">{Icons.check} Видео задано</span>
                         ) : (
                           <>
                             {Icons.upload}
-                            <span className="mt-2">MP4 или WebM</span>
+                            <span className="mt-1 text-xs">Загрузить файл (только для вас)</span>
                           </>
                         )}
                       </button>

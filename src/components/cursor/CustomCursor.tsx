@@ -10,172 +10,125 @@ interface CustomCursorProps {
 }
 
 export function CustomCursor({ style, color, customCursor }: CustomCursorProps) {
-  const [position, setPosition] = useState({ x: -100, y: -100 });
+  const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isHovering, setIsHovering] = useState(false);
   const [isClicking, setIsClicking] = useState(false);
-  const [isVisible, setIsVisible] = useState(true); // Start visible
   const [trail, setTrail] = useState<{ x: number; y: number }[]>([]);
-  const rafRef = useRef<number>(0);
   const [mounted, setMounted] = useState(false);
+  const [hasMovedMouse, setHasMovedMouse] = useState(false);
 
   // Handle hydration
   useEffect(() => {
     setMounted(true);
-  }, []);
+    console.log('CustomCursor mounted, style:', style);
+  }, [style]);
 
-  // Apply custom cursor CSS
+  // Apply cursor hiding for glow/ring/trail styles
   useEffect(() => {
-    // Default cursor or custom without image - show normal cursor
-    if (style === 'default' || (style === 'custom' && !customCursor)) {
-      document.body.style.cursor = 'auto';
-      document.body.classList.remove('custom-cursor-active');
-      // Remove any custom cursor styles
-      const existingStyle = document.getElementById('custom-cursor-style');
-      if (existingStyle) existingStyle.remove();
+    if (!mounted) return;
+    
+    console.log('Applying cursor style:', style);
+    
+    // Remove previous styles
+    const existingStyle = document.getElementById('custom-cursor-style');
+    if (existingStyle) existingStyle.remove();
+    document.body.classList.remove('custom-cursor-active');
+    
+    // Default - normal cursor
+    if (style === 'default') {
+      document.documentElement.style.cursor = '';
+      document.body.style.cursor = '';
       return;
     }
-
+    
+    // Custom cursor image
     if (style === 'custom' && customCursor) {
-      document.body.classList.remove('custom-cursor-active');
-      
-      // Create a resized cursor image
       const img = new Image();
-      img.crossOrigin = 'anonymous';
       img.onload = () => {
-        // Create canvas to resize cursor (max 32x32 for browser compatibility)
         const canvas = document.createElement('canvas');
-        const maxSize = 32;
-        let width = img.width;
-        let height = img.height;
-        
-        if (width > maxSize || height > maxSize) {
-          const ratio = Math.min(maxSize / width, maxSize / height);
-          width = Math.round(width * ratio);
-          height = Math.round(height * ratio);
-        }
-        
-        canvas.width = width;
-        canvas.height = height;
+        const size = 32;
+        canvas.width = size;
+        canvas.height = size;
         const ctx = canvas.getContext('2d');
         if (ctx) {
-          ctx.drawImage(img, 0, 0, width, height);
-          const resizedCursor = canvas.toDataURL('image/png');
-          
-          // Hotspot at center of cursor image
-          const hotspotX = Math.floor(width / 2);
-          const hotspotY = Math.floor(height / 2);
-          
-          // Remove existing style
-          const existingStyle = document.getElementById('custom-cursor-style');
-          if (existingStyle) existingStyle.remove();
-          
-          // Add new style for all elements with centered hotspot
+          const scale = Math.min(size / img.width, size / img.height);
+          const w = img.width * scale;
+          const h = img.height * scale;
+          ctx.drawImage(img, (size - w) / 2, (size - h) / 2, w, h);
+          const dataUrl = canvas.toDataURL();
           const styleEl = document.createElement('style');
           styleEl.id = 'custom-cursor-style';
-          styleEl.textContent = `
-            html, body, *, *::before, *::after {
-              cursor: url("${resizedCursor}") ${hotspotX} ${hotspotY}, auto !important;
-            }
-            a, button, [role="button"], input, select, textarea, .hoverable {
-              cursor: url("${resizedCursor}") ${hotspotX} ${hotspotY}, pointer !important;
-            }
-          `;
+          styleEl.textContent = `* { cursor: url("${dataUrl}") 16 16, auto !important; }`;
           document.head.appendChild(styleEl);
         }
       };
-      img.onerror = () => {
-        console.error('Failed to load custom cursor image');
-        document.body.style.cursor = 'auto';
-      };
       img.src = customCursor;
-      
-      return () => {
-        document.body.style.cursor = 'auto';
-        const existingStyle = document.getElementById('custom-cursor-style');
-        if (existingStyle) existingStyle.remove();
-      };
+      return;
     }
-
-    // For other styles (glow, ring, trail), hide default cursor
-    document.body.classList.add('custom-cursor-active');
-    document.body.style.cursor = 'none';
     
-    // Remove any custom cursor styles
-    const existingStyle = document.getElementById('custom-cursor-style');
-    if (existingStyle) existingStyle.remove();
-
+    // Glow, ring, trail - hide native cursor
+    if (style === 'glow' || style === 'ring' || style === 'trail') {
+      const styleEl = document.createElement('style');
+      styleEl.id = 'custom-cursor-style';
+      styleEl.textContent = `
+        html, body, * { cursor: none !important; }
+      `;
+      document.head.appendChild(styleEl);
+      document.body.classList.add('custom-cursor-active');
+    }
+    
     return () => {
-      document.body.style.cursor = 'auto';
+      const el = document.getElementById('custom-cursor-style');
+      if (el) el.remove();
       document.body.classList.remove('custom-cursor-active');
+      document.documentElement.style.cursor = '';
+      document.body.style.cursor = '';
     };
-  }, [style, customCursor]);
+  }, [style, customCursor, mounted]);
 
-  const handleMouseMove = useCallback((e: MouseEvent) => {
-    if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    
-    rafRef.current = requestAnimationFrame(() => {
-      setPosition({ x: e.clientX, y: e.clientY });
-      setIsVisible(true);
-
-      if (style === 'trail') {
-        setTrail(prev => {
-          const newTrail = [...prev, { x: e.clientX, y: e.clientY }];
-          if (newTrail.length > 15) {
-            return newTrail.slice(-15);
-          }
-          return newTrail;
-        });
-      }
-    });
-  }, [style]);
-
+  // Mouse tracking
   useEffect(() => {
-    // Skip for default or custom cursor
+    if (!mounted) return;
     if (style === 'default' || style === 'custom') return;
-
-    const handleMouseEnter = () => setIsVisible(true);
-    const handleMouseLeave = () => setIsVisible(false);
-    const handleMouseDown = () => setIsClicking(true);
-    const handleMouseUp = () => setIsClicking(false);
-
-    const handleElementHover = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      const isInteractive = 
-        target.tagName === 'A' ||
-        target.tagName === 'BUTTON' ||
-        target.tagName === 'INPUT' ||
-        target.tagName === 'TEXTAREA' ||
-        target.tagName === 'SELECT' ||
-        !!target.closest('a') ||
-        !!target.closest('button') ||
-        target.classList.contains('hoverable') ||
-        !!target.closest('.hoverable');
-      setIsHovering(!!isInteractive);
+    
+    const onMouseMove = (e: MouseEvent) => {
+      setPosition({ x: e.clientX, y: e.clientY });
+      setHasMovedMouse(true);
+      
+      if (style === 'trail') {
+        setTrail(prev => [...prev.slice(-14), { x: e.clientX, y: e.clientY }]);
+      }
     };
-
-    document.addEventListener('mousemove', handleMouseMove, { passive: true });
-    document.addEventListener('mouseenter', handleMouseEnter);
-    document.addEventListener('mouseleave', handleMouseLeave);
-    document.addEventListener('mousedown', handleMouseDown);
-    document.addEventListener('mouseup', handleMouseUp);
-    document.addEventListener('mouseover', handleElementHover);
-
+    
+    const onMouseDown = () => setIsClicking(true);
+    const onMouseUp = () => setIsClicking(false);
+    
+    const onMouseOver = (e: MouseEvent) => {
+      const t = e.target as HTMLElement;
+      setIsHovering(
+        t.tagName === 'A' || t.tagName === 'BUTTON' || 
+        !!t.closest('a') || !!t.closest('button') ||
+        t.classList.contains('hoverable')
+      );
+    };
+    
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mousedown', onMouseDown);
+    window.addEventListener('mouseup', onMouseUp);
+    window.addEventListener('mouseover', onMouseOver);
+    
     return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseenter', handleMouseEnter);
-      document.removeEventListener('mouseleave', handleMouseLeave);
-      document.removeEventListener('mousedown', handleMouseDown);
-      document.removeEventListener('mouseup', handleMouseUp);
-      document.removeEventListener('mouseover', handleElementHover);
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mousedown', onMouseDown);
+      window.removeEventListener('mouseup', onMouseUp);
+      window.removeEventListener('mouseover', onMouseOver);
     };
-  }, [style, handleMouseMove]);
+  }, [style, mounted]);
 
-  // Don't render anything for default or custom cursor, or before hydration
-  if (!mounted || style === 'default' || style === 'custom') return null;
-  
-  // Don't render if position not set yet
-  if (position.x < 0 && position.y < 0) return null;
+  // Don't render for default/custom or before hydration or before mouse moved
+  if (!mounted) return null;
+  if (style === 'default' || style === 'custom') return null;
+  if (!hasMovedMouse) return null;
 
   const renderCursor = () => {
     switch (style) {
