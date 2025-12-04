@@ -18,8 +18,11 @@ const spaceGrotesk = Space_Grotesk({
 })
 
 export const metadata: Metadata = {
-  title: 'Bio',
-  description: 'Personal bio page',
+  title: 'Bio-GARAKIL',
+  description: 'Personal bio page by GARAKIL',
+  icons: {
+    icon: '/favicon.svg',
+  },
 }
 
 export default function RootLayout({
@@ -29,6 +32,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ru" className={`${inter.variable} ${jetbrainsMono.variable} ${spaceGrotesk.variable}`}>
+      <head>
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+      </head>
       <body className="font-sans antialiased">
         {children}
       </body>
