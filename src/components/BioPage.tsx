@@ -187,7 +187,7 @@ export function BioPage() {
   const handleEnterSite = useCallback(() => {
     setVerificationStep('done');
     
-    // Запускаем музыку после клика
+    // Запускаем музыку сразу после клика
     if (config.musicUrl && config.musicAutoPlay) {
       // Останавливаем предыдущее аудио если есть
       if (audioRef.current) {
@@ -200,16 +200,13 @@ export function BioPage() {
       audio.loop = true;
       audioRef.current = audio;
       
-      // Используем setTimeout для гарантии после user interaction
-      setTimeout(() => {
-        audio.play().then(() => {
-          setIsPlaying(true);
-          console.log('Music started after click!');
-        }).catch((e) => {
-          console.log('Music play failed:', e);
-          setIsPlaying(false);
-        });
-      }, 100);
+      // Запускаем сразу без задержки
+      audio.play().then(() => {
+        setIsPlaying(true);
+      }).catch((e) => {
+        console.log('Music play failed:', e);
+        setIsPlaying(false);
+      });
     }
   }, [config.musicUrl, config.musicAutoPlay, config.musicVolume]);
 
