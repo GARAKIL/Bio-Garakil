@@ -43,49 +43,85 @@ export function CustomCursor({ style, color, customCursor }: CustomCursorProps) 
     
     // Custom cursor image
     if (style === 'custom' && customCursor) {
-      console.log('Loading custom cursor:', customCursor.substring(0, 50));
+      console.log('Loading custom cursor:', customCursor.substring(0, 100));
       
-      // Если это URL (не base64), используем напрямую
-      if (customCursor.startsWith('http')) {
-        const styleEl = document.createElement('style');
-        styleEl.id = 'custom-cursor-style';
-        styleEl.textContent = `* { cursor: url("${customCursor}") 16 16, auto !important; }`;
-        document.head.appendChild(styleEl);
-        console.log('Applied URL cursor directly');
-        return;
-      }
-      
-      // Для base64 - рисуем на canvas
       const img = new Image();
       img.crossOrigin = 'anonymous';
+      
       img.onload = () => {
-        console.log('Custom cursor image loaded, size:', img.width, img.height);
+        console.log('Custom cursor loaded, size:', img.width, 'x', img.height);
+        
+        // Ресайзим до 32x32 для совместимости с браузером
         const canvas = document.createElement('canvas');
         const size = 32;
         canvas.width = size;
         canvas.height = size;
         const ctx = canvas.getContext('2d');
+        
         if (ctx) {
           const scale = Math.min(size / img.width, size / img.height);
           const w = img.width * scale;
           const h = img.height * scale;
-          ctx.drawImage(img, (size - w) / 2, (size - h) / 2, w, h);
-          const dataUrl = canvas.toDataURL();
-          const styleEl = document.createElement('style');
-          styleEl.id = 'custom-cursor-style';
-          styleEl.textContent = `* { cursor: url("${dataUrl}") 16 16, auto !important; }`;
-          document.head.appendChild(styleEl);
-          console.log('Applied canvas cursor');
+          const x = (size - w) / 2;
+          const y = (size - h) / 2;
+          
+          ctx.clearRect(0, 0, size, size);
+          ctx.drawImage(img, x, y, w, h);
+          
+          try {
+            const dataUrl = canvas.toDataURL('image/png');
+            const styleEl = document.createElement('style');
+            styleEl.id = 'custom-cursor-style';
+            styleEl.textContent = `
+              html, body, *, *::before, *::after { 
+                cursor: url("${dataUrl}") 16 16, auto !important; 
+              }
+            `;
+            document.head.appendChild(styleEl);
+            console.log('Custom cursor applied successfully!');
+          } catch (e) {
+            console.error('Canvas toDataURL failed:', e);
+          }
         }
       };
+      
       img.onerror = (e) => {
-        console.error('Failed to load custom cursor:', e);
-        // Fallback - try direct URL
-        const styleEl = document.createElement('style');
-        styleEl.id = 'custom-cursor-style';
-        styleEl.textContent = `* { cursor: url("${customCursor}") 16 16, auto !important; }`;
-        document.head.appendChild(styleEl);
+        console.error('Direct load failed, trying proxy...', e);
+        
+        // Пробуем через прокси
+        const proxyImg = new Image();
+        proxyImg.crossOrigin = 'anonymous';
+        
+        proxyImg.onload = () => {
+          const canvas = document.createElement('canvas');
+          const size = 32;
+          canvas.width = size;
+          canvas.height = size;
+          const ctx = canvas.getContext('2d');
+          
+          if (ctx) {
+            const scale = Math.min(size / proxyImg.width, size / proxyImg.height);
+            const w = proxyImg.width * scale;
+            const h = proxyImg.height * scale;
+            ctx.drawImage(proxyImg, (size - w) / 2, (size - h) / 2, w, h);
+            
+            const dataUrl = canvas.toDataURL('image/png');
+            const styleEl = document.createElement('style');
+            styleEl.id = 'custom-cursor-style';
+            styleEl.textContent = `* { cursor: url("${dataUrl}") 16 16, auto !important; }`;
+            document.head.appendChild(styleEl);
+            console.log('Custom cursor applied via proxy!');
+          }
+        };
+        
+        proxyImg.onerror = () => {
+          console.error('Proxy also failed');
+        };
+        
+        proxyImg.src = `/api/proxy?url=${encodeURIComponent(customCursor)}`;
       };
+      
+      // Для base64 - загружаем напрямую, для URL - тоже пробуем напрямую
       img.src = customCursor;
       return;
     }
