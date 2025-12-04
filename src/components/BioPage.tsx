@@ -140,12 +140,17 @@ const Card3D = ({ children, enabled, intensity = 10, style, className }: {
 };
 
 export function BioPage() {
-  const { config, toggleSettings } = useConfigStore();
+  const { config, toggleSettings, loadConfigFromServer } = useConfigStore();
   const { viewCount } = useViewCounter();
   const [mounted, setMounted] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const keySequenceRef = useRef<string[]>([]);
+
+  // Загрузка конфига с сервера при монтировании
+  useEffect(() => {
+    loadConfigFromServer();
+  }, [loadConfigFromServer]);
 
   // Shift + ↑↑↓↓ для открытия настроек (два раза вверх, два раза вниз)
   const handleKeyDown = useCallback((e: KeyboardEvent) => {

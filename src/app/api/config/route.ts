@@ -1,45 +1,93 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { kv } from '@vercel/kv';
 
-// In production, this would use Vercel KV
-// For local development, we'll use a simple in-memory store or localStorage approach
+const CONFIG_KEY = 'bio-site-config';
+const ADMIN_PASSWORD = 'Qwerty22';
 
-let configStore: Record<string, unknown> | null = null;
+// Check if KV is available
+function isKVAvailable(): boolean {
+  return !!(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
+}
 
+// GET - получить конфиг (без пароля, публичный)
 export async function GET() {
   try {
-    // In production with Vercel KV:
-    // const { kv } = await import('@vercel/kv');
-    // const config = await kv.get('bio-config');
-    
-    if (configStore) {
-      return NextResponse.json({ success: true, data: configStore });
+    if (isKVAvailable()) {
+      const config = await kv.get(CONFIG_KEY);
+      if (config) {
+        return NextResponse.json({ success: true, data: config });
+      }
     }
     
     return NextResponse.json({ success: true, data: null });
   } catch (error) {
     console.error('Error fetching config:', error);
+    return NextResponse.json({ success: true, data: null });
+  }
+}
+
+// POST - сохранить конфиг (требуется пароль)
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { password, config } = body;
+    
+    // Проверка пароля
+    if (password !== ADMIN_PASSWORD) {
+      return NextResponse.json(
+        { success: false, error: 'Неверный пароль' },
+        { status: 401 }
+      );
+    }
+    
+    if (!config) {
+      return NextResponse.json(
+        { success: false, error: 'Конфиг не указан' },
+        { status: 400 }
+      );
+    }
+    
+    if (isKVAvailable()) {
+      await kv.set(CONFIG_KEY, config);
+      return NextResponse.json({ success: true, message: 'Настройки сохранены' });
+    } else {
+      return NextResponse.json(
+        { success: false, error: 'База данных не подключена' },
+        { status: 500 }
+      );
+    }
+  } catch (error) {
+    console.error('Error saving config:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch config' },
+      { success: false, error: 'Ошибка сохранения' },
       { status: 500 }
     );
   }
 }
 
-export async function POST(request: Request) {
+// DELETE - сбросить конфиг (требуется пароль)
+export async function DELETE(request: NextRequest) {
   try {
     const body = await request.json();
+    const { password } = body;
     
-    // In production with Vercel KV:
-    // const { kv } = await import('@vercel/kv');
-    // await kv.set('bio-config', body);
+    if (password !== ADMIN_PASSWORD) {
+      return NextResponse.json(
+        { success: false, error: 'Неверный пароль' },
+        { status: 401 }
+      );
+    }
     
-    configStore = body;
+    if (isKVAvailable()) {
+      await kv.del(CONFIG_KEY);
+      return NextResponse.json({ success: true, message: 'Настройки сброшены' });
+    }
     
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error saving config:', error);
+    console.error('Error deleting config:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to save config' },
+      { success: false, error: 'Ошибка сброса' },
       { status: 500 }
     );
   }

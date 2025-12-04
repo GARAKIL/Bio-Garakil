@@ -161,8 +161,9 @@ const OptionButton = ({ selected, onClick, children, color }: { selected: boolea
 );
 
 export function SettingsPanel() {
-  const { config, isSettingsOpen, toggleSettings, setConfig, resetConfig } = useConfigStore();
+  const { config, isSettingsOpen, toggleSettings, setConfig, resetConfig, password, setPassword, isAuthenticated, saveConfigToServer, isLoading } = useConfigStore();
   const [activeTab, setActiveTab] = useState<'profile' | 'background' | 'effects' | 'links'>('profile');
+  const [saveStatus, setSaveStatus] = useState<{ type: 'success' | 'error' | null; message: string }>({ type: null, message: '' });
   const { count: viewCount, updateCount: setViewCount, resetCount: resetViewCount, isLoading: viewsLoading } = useAdminViewCount();
   
   const avatarInputRef = useRef<HTMLInputElement>(null);
@@ -829,16 +830,60 @@ export function SettingsPanel() {
               )}
             </div>
 
-            {/* Footer */}
-            <div className="p-4" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+            {/* Footer with Password & Save */}
+            <div className="p-4 space-y-3" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+              {/* Password input */}
+              <div>
+                <label className="block text-xs text-white/40 mb-1.5">Пароль для сохранения</label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Введите пароль..."
+                  className="w-full px-3 py-2.5 rounded-lg bg-white/5 border border-white/10 text-sm"
+                />
+              </div>
+
+              {/* Save status */}
+              {saveStatus.type && (
+                <div className={`px-3 py-2 rounded-lg text-sm ${saveStatus.type === 'success' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                  {saveStatus.message}
+                </div>
+              )}
+
+              {/* Save button */}
+              <button
+                onClick={async () => {
+                  if (!password) {
+                    setSaveStatus({ type: 'error', message: 'Введите пароль' });
+                    return;
+                  }
+                  setSaveStatus({ type: null, message: '' });
+                  const result = await saveConfigToServer();
+                  if (result.success) {
+                    setSaveStatus({ type: 'success', message: 'Настройки сохранены!' });
+                  } else {
+                    setSaveStatus({ type: 'error', message: result.error || 'Ошибка сохранения' });
+                  }
+                  setTimeout(() => setSaveStatus({ type: null, message: '' }), 3000);
+                }}
+                disabled={isLoading}
+                className="w-full py-3 rounded-xl text-white font-medium transition-all text-sm flex items-center justify-center gap-2 hover:scale-[1.02]"
+                style={{ background: config.primaryColor }}
+              >
+                {isLoading ? 'Сохранение...' : `${Icons.check} Сохранить на сервер`}
+              </button>
+
+              {/* Reset button */}
               <button
                 onClick={resetConfig}
-                className="w-full py-3 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all text-sm font-medium flex items-center justify-center gap-2"
+                className="w-full py-2.5 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all text-sm font-medium flex items-center justify-center gap-2"
               >
-                {Icons.trash} Сбросить настройки
+                {Icons.trash} Сбросить
               </button>
-              <p className="text-[10px] text-white/20 text-center mt-3">
-                Shift + два раза вверх, два раза вниз для открытия
+              
+              <p className="text-[10px] text-white/20 text-center">
+                Shift + ↑↑↓↓ для открытия панели
               </p>
             </div>
           </motion.div>
