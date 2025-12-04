@@ -254,10 +254,10 @@ export function BioPage() {
     });
   }, [config.musicVolume]);
 
-  // Listen for music loaded event
+  // Listen for music loaded event - only play if verification is done
   useEffect(() => {
     const handleMusicLoaded = (e: CustomEvent) => {
-      if (e.detail?.url) {
+      if (e.detail?.url && verificationStep === 'done') {
         playMusic(e.detail.url);
       }
     };
@@ -266,7 +266,7 @@ export function BioPage() {
     return () => {
       window.removeEventListener('musicLoaded', handleMusicLoaded as EventListener);
     };
-  }, [playMusic]);
+  }, [playMusic, verificationStep]);
 
   // Update volume when changed
   useEffect(() => {
@@ -278,6 +278,9 @@ export function BioPage() {
   // Update audio source when musicUrl changes
   const prevMusicUrlRef = useRef<string | undefined>(config.musicUrl);
   useEffect(() => {
+    // Only handle music changes AFTER user has clicked through (verificationStep === 'done')
+    if (verificationStep !== 'done') return;
+    
     // Check if musicUrl actually changed (not just on mount)
     if (prevMusicUrlRef.current !== config.musicUrl && config.musicUrl) {
       // Stop current audio
@@ -302,7 +305,7 @@ export function BioPage() {
       }
     }
     prevMusicUrlRef.current = config.musicUrl;
-  }, [config.musicUrl, config.musicVolume, config.musicAutoPlay, isPlaying]);
+  }, [config.musicUrl, config.musicVolume, config.musicAutoPlay, isPlaying, verificationStep]);
 
   // Audio control
   const toggleAudio = () => {
