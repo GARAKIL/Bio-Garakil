@@ -161,10 +161,14 @@ const OptionButton = ({ selected, onClick, children, color }: { selected: boolea
 );
 
 export function SettingsPanel() {
-  const { config, isSettingsOpen, toggleSettings, setConfig, resetConfig, password, setPassword, isAuthenticated, saveConfigToServer, isLoading } = useConfigStore();
+  const { config, draftConfig, isSettingsOpen, toggleSettings, setDraftConfig, resetDraft, resetConfig, password, setPassword, isAuthenticated, saveConfigToServer, isLoading } = useConfigStore();
   const [activeTab, setActiveTab] = useState<'profile' | 'background' | 'effects' | 'links'>('profile');
   const [saveStatus, setSaveStatus] = useState<{ type: 'success' | 'error' | null; message: string }>({ type: null, message: '' });
   const { count: viewCount, updateCount: setViewCount, resetCount: resetViewCount, isLoading: viewsLoading } = useAdminViewCount();
+  
+  // Use draftConfig for editing in settings panel
+  const editConfig = draftConfig;
+  const setConfig = setDraftConfig;
   
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const backgroundInputRef = useRef<HTMLInputElement>(null);
@@ -256,17 +260,17 @@ export function SettingsPanel() {
       icon: 'discord',
       enabled: true,
     };
-    setConfig({ links: [...config.links, newLink] });
+    setConfig({ links: [...editConfig.links, newLink] });
   };
 
   const updateLink = (id: string, updates: Partial<SocialLink>) => {
     setConfig({
-      links: config.links.map(link => link.id === id ? { ...link, ...updates } : link)
+      links: editConfig.links.map(link => link.id === id ? { ...link, ...updates } : link)
     });
   };
 
   const deleteLink = (id: string) => {
-    setConfig({ links: config.links.filter(link => link.id !== id) });
+    setConfig({ links: editConfig.links.filter(link => link.id !== id) });
   };
 
   const tabs = [
@@ -298,16 +302,16 @@ export function SettingsPanel() {
             className="fixed right-0 top-0 h-full w-full max-w-md z-[101] overflow-hidden flex flex-col"
             style={{ 
               background: 'linear-gradient(180deg, rgba(15,15,20,0.98) 0%, rgba(10,10,15,0.99) 100%)',
-              borderLeft: `1px solid ${config.primaryColor}20`,
+              borderLeft: `1px solid ${editConfig.primaryColor}20`,
               boxShadow: `-20px 0 60px rgba(0,0,0,0.5)`,
             }}
           >
             {/* Header */}
-            <div className="p-5 flex items-center justify-between" style={{ borderBottom: `1px solid ${config.primaryColor}20` }}>
+            <div className="p-5 flex items-center justify-between" style={{ borderBottom: `1px solid ${editConfig.primaryColor}20` }}>
               <div className="flex items-center gap-3">
                 <div 
                   className="w-10 h-10 rounded-xl flex items-center justify-center"
-                  style={{ background: `${config.primaryColor}20` }}
+                  style={{ background: `${editConfig.primaryColor}20` }}
                 >
                   <SettingsIcon size={20} className="text-white" />
                 </div>
@@ -332,9 +336,9 @@ export function SettingsPanel() {
                   onClick={() => setActiveTab(tab.id as typeof activeTab)}
                   className="flex-1 py-2.5 rounded-lg text-xs transition-all flex items-center justify-center gap-1.5 font-medium"
                   style={{
-                    background: activeTab === tab.id ? `${config.primaryColor}20` : 'transparent',
-                    color: activeTab === tab.id ? config.primaryColor : 'rgba(255,255,255,0.4)',
-                    border: activeTab === tab.id ? `1px solid ${config.primaryColor}30` : '1px solid transparent',
+                    background: activeTab === tab.id ? `${editConfig.primaryColor}20` : 'transparent',
+                    color: activeTab === tab.id ? editConfig.primaryColor : 'rgba(255,255,255,0.4)',
+                    border: activeTab === tab.id ? `1px solid ${editConfig.primaryColor}30` : '1px solid transparent',
                   }}
                 >
                   {tab.icon}
@@ -353,17 +357,17 @@ export function SettingsPanel() {
                       <div 
                         className="w-20 h-20 rounded-2xl overflow-hidden"
                         style={{ 
-                          boxShadow: `0 0 0 2px black, 0 0 0 4px ${config.primaryColor}` 
+                          boxShadow: `0 0 0 2px black, 0 0 0 4px ${editConfig.primaryColor}` 
                         }}
                       >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={config.avatar} alt="" className="w-full h-full object-cover" />
+                        <img src={editConfig.avatar} alt="" className="w-full h-full object-cover" />
                       </div>
                       <div className="flex-1 space-y-2">
                         <button
                           onClick={() => avatarInputRef.current?.click()}
                           className="w-full px-4 py-2.5 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-all hover:scale-[1.02]"
-                          style={{ background: `${config.primaryColor}20`, color: config.primaryColor, border: `1px solid ${config.primaryColor}30` }}
+                          style={{ background: `${editConfig.primaryColor}20`, color: editConfig.primaryColor, border: `1px solid ${editConfig.primaryColor}30` }}
                         >
                           {Icons.upload}
                           Загрузить
@@ -381,7 +385,7 @@ export function SettingsPanel() {
                         <label className="block text-xs text-white/40 mb-1.5">Имя пользователя</label>
                         <input
                           type="text"
-                          value={config.username}
+                          value={editConfig.username}
                           onChange={(e) => setConfig({ username: e.target.value })}
                           className="w-full px-4 py-2.5 rounded-lg bg-white/5 border border-white/10 focus:outline-none focus:border-white/20 text-sm"
                           placeholder="Ваше имя"
@@ -390,7 +394,7 @@ export function SettingsPanel() {
                       <div>
                         <label className="block text-xs text-white/40 mb-1.5">Описание</label>
                         <textarea
-                          value={config.bio}
+                          value={editConfig.bio}
                           onChange={(e) => setConfig({ bio: e.target.value })}
                           rows={2}
                           className="w-full px-4 py-2.5 rounded-lg bg-white/5 border border-white/10 focus:outline-none focus:border-white/20 resize-none text-sm"
@@ -401,7 +405,7 @@ export function SettingsPanel() {
                         <label className="block text-xs text-white/40 mb-1.5">Локация</label>
                         <input
                           type="text"
-                          value={config.location}
+                          value={editConfig.location}
                           onChange={(e) => setConfig({ location: e.target.value })}
                           className="w-full px-4 py-2.5 rounded-lg bg-white/5 border border-white/10 focus:outline-none focus:border-white/20 text-sm"
                           placeholder="Город, Страна"
@@ -413,10 +417,10 @@ export function SettingsPanel() {
                   {/* Colors Section */}
                   <Section title="Цвета" icon={Icons.palette}>
                     <div className="space-y-1">
-                      <ColorPicker label="Основной" value={config.primaryColor} onChange={(v) => setConfig({ primaryColor: v })} />
-                      <ColorPicker label="Текст" value={config.textColor} onChange={(v) => setConfig({ textColor: v })} />
-                      <ColorPicker label="Рамки" value={config.borderColor} onChange={(v) => setConfig({ borderColor: v })} />
-                      <ColorPicker label="Свечение" value={config.glowColor} onChange={(v) => setConfig({ glowColor: v })} />
+                      <ColorPicker label="Основной" value={editConfig.primaryColor} onChange={(v) => setConfig({ primaryColor: v })} />
+                      <ColorPicker label="Текст" value={editConfig.textColor} onChange={(v) => setConfig({ textColor: v })} />
+                      <ColorPicker label="Рамки" value={editConfig.borderColor} onChange={(v) => setConfig({ borderColor: v })} />
+                      <ColorPicker label="Свечение" value={editConfig.glowColor} onChange={(v) => setConfig({ glowColor: v })} />
                     </div>
                   </Section>
 
@@ -424,18 +428,18 @@ export function SettingsPanel() {
                   <Section title="Discord карточка" icon={Icons.discord}>
                     <Toggle 
                       label="Показывать карточку" 
-                      checked={config.showDiscordCard} 
+                      checked={editConfig.showDiscordCard} 
                       onChange={(v) => setConfig({ showDiscordCard: v })} 
-                      color={config.primaryColor} 
+                      color={editConfig.primaryColor} 
                     />
                     
-                    {config.showDiscordCard && (
+                    {editConfig.showDiscordCard && (
                       <div className="mt-3 pt-3 border-t border-white/5 space-y-3">
                         <div className="flex items-center gap-3">
                           <div className="w-12 h-12 rounded-full overflow-hidden ring-2 ring-white/10 flex-shrink-0 bg-white/5">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img 
-                              src={config.discordAvatar || config.avatar || '/avatar.svg'} 
+                              src={editConfig.discordAvatar || editConfig.avatar || '/avatar.svg'} 
                               alt="" 
                               className="w-full h-full object-cover"
                               onError={(e) => {
@@ -446,7 +450,7 @@ export function SettingsPanel() {
                           <button
                             onClick={() => discordAvatarInputRef.current?.click()}
                             className="px-3 py-1.5 rounded-lg text-xs transition-all"
-                            style={{ background: `${config.primaryColor}15`, color: config.primaryColor }}
+                            style={{ background: `${editConfig.primaryColor}15`, color: editConfig.primaryColor }}
                           >
                             Изменить аватар
                           </button>
@@ -454,14 +458,14 @@ export function SettingsPanel() {
                         </div>
                         <input
                           type="text"
-                          value={config.discordUsername}
+                          value={editConfig.discordUsername}
                           onChange={(e) => setConfig({ discordUsername: e.target.value })}
                           placeholder="Discord имя"
                           className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm"
                         />
                         <input
                           type="text"
-                          value={config.discordStatus}
+                          value={editConfig.discordStatus}
                           onChange={(e) => setConfig({ discordStatus: e.target.value })}
                           placeholder="Статус"
                           className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm"
@@ -474,16 +478,16 @@ export function SettingsPanel() {
                   <Section title="Статистика" icon={Icons.profile}>
                     <Toggle 
                       label="Показывать просмотры" 
-                      checked={config.showViewCount} 
+                      checked={editConfig.showViewCount} 
                       onChange={(v) => setConfig({ showViewCount: v })} 
-                      color={config.primaryColor} 
+                      color={editConfig.primaryColor} 
                     />
                     
-                    {config.showViewCount && (
+                    {editConfig.showViewCount && (
                       <div className="mt-3 pt-3 border-t border-white/5 space-y-3">
                         <div className="flex items-center justify-between">
                           <span className="text-sm text-white/70">Всего просмотров</span>
-                          <span className="text-lg font-bold" style={{ color: config.primaryColor }}>
+                          <span className="text-lg font-bold" style={{ color: editConfig.primaryColor }}>
                             {viewsLoading ? '...' : viewCount}
                           </span>
                         </div>
@@ -521,9 +525,9 @@ export function SettingsPanel() {
                       {backgroundOptions.map((option) => (
                         <OptionButton
                           key={option.value}
-                          selected={config.backgroundType === option.value}
+                          selected={editConfig.backgroundType === option.value}
                           onClick={() => setConfig({ backgroundType: option.value })}
-                          color={config.primaryColor}
+                          color={editConfig.primaryColor}
                         >
                           <div className="flex flex-col items-center gap-1">
                             {option.icon}
@@ -535,20 +539,20 @@ export function SettingsPanel() {
                   </Section>
 
                   {/* Image Upload */}
-                  {config.backgroundType === 'image' && (
+                  {editConfig.backgroundType === 'image' && (
                     <Section title="Изображение" icon={Icons.image}>
                       <button
                         onClick={() => backgroundInputRef.current?.click()}
                         className="w-full h-32 rounded-xl border-2 border-dashed border-white/10 flex flex-col items-center justify-center text-sm text-white/40 hover:border-white/20 hover:text-white/60 transition-all overflow-hidden"
-                        style={config.backgroundImage ? { 
-                          backgroundImage: `url(${config.backgroundImage})`, 
+                        style={editConfig.backgroundImage ? { 
+                          backgroundImage: `url(${editConfig.backgroundImage})`, 
                           backgroundSize: 'cover', 
                           backgroundPosition: 'center',
                           borderStyle: 'solid',
-                          borderColor: `${config.primaryColor}40`,
+                          borderColor: `${editConfig.primaryColor}40`,
                         } : {}}
                       >
-                        {!config.backgroundImage && (
+                        {!editConfig.backgroundImage && (
                           <>
                             {Icons.upload}
                             <span className="mt-2">Нажмите для загрузки</span>
@@ -556,7 +560,7 @@ export function SettingsPanel() {
                         )}
                       </button>
                       <input ref={backgroundInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, 'background')} />
-                      {config.backgroundImage && (
+                      {editConfig.backgroundImage && (
                         <button 
                           onClick={() => setConfig({ backgroundImage: '' })} 
                           className="mt-2 text-xs text-red-400 flex items-center gap-1 hover:text-red-300"
@@ -568,14 +572,14 @@ export function SettingsPanel() {
                   )}
 
                   {/* Video Upload */}
-                  {config.backgroundType === 'video' && (
+                  {editConfig.backgroundType === 'video' && (
                     <Section title="Видео" icon={Icons.video}>
                       <button
                         onClick={() => videoInputRef.current?.click()}
                         className="w-full h-32 rounded-xl border-2 border-dashed border-white/10 flex flex-col items-center justify-center text-sm text-white/40 hover:border-white/20 transition-all"
-                        style={config.backgroundVideo ? { borderColor: `${config.primaryColor}40`, borderStyle: 'solid' } : {}}
+                        style={editConfig.backgroundVideo ? { borderColor: `${editConfig.primaryColor}40`, borderStyle: 'solid' } : {}}
                       >
-                        {config.backgroundVideo ? (
+                        {editConfig.backgroundVideo ? (
                           <span className="flex items-center gap-2 text-green-400">{Icons.check} Видео загружено</span>
                         ) : (
                           <>
@@ -585,7 +589,7 @@ export function SettingsPanel() {
                         )}
                       </button>
                       <input ref={videoInputRef} type="file" accept="video/mp4,video/webm" className="hidden" onChange={(e) => handleFileUpload(e, 'video')} />
-                      {config.backgroundVideo && (
+                      {editConfig.backgroundVideo && (
                         <button 
                           onClick={() => setConfig({ backgroundVideo: '' })} 
                           className="mt-2 text-xs text-red-400 flex items-center gap-1"
@@ -597,15 +601,15 @@ export function SettingsPanel() {
                   )}
 
                   {/* Effect Overlay */}
-                  {(config.backgroundType === 'image' || config.backgroundType === 'video') && (
+                  {(editConfig.backgroundType === 'image' || editConfig.backgroundType === 'video') && (
                     <Section title="Эффект поверх" icon={Icons.particles}>
                       <div className="grid grid-cols-5 gap-1.5">
                         {effectOverlayOptions.map((option) => (
                           <OptionButton
                             key={option.value}
-                            selected={config.effectOverlay === option.value}
+                            selected={editConfig.effectOverlay === option.value}
                             onClick={() => setConfig({ effectOverlay: option.value })}
-                            color={config.primaryColor}
+                            color={editConfig.primaryColor}
                           >
                             <div className="flex flex-col items-center gap-0.5">
                               {option.icon}
@@ -625,7 +629,7 @@ export function SettingsPanel() {
                       min={10} 
                       max={100} 
                       unit="%" 
-                      color={config.primaryColor} 
+                      color={editConfig.primaryColor} 
                     />
                   </Section>
                 </>
@@ -637,19 +641,19 @@ export function SettingsPanel() {
                   <Section title="3D Эффект карточек" icon={Icons.cube}>
                     <Toggle 
                       label="Включить 3D" 
-                      checked={config.card3DEnabled} 
+                      checked={editConfig.card3DEnabled} 
                       onChange={(v) => setConfig({ card3DEnabled: v })} 
-                      color={config.primaryColor} 
+                      color={editConfig.primaryColor} 
                     />
-                    {config.card3DEnabled && (
+                    {editConfig.card3DEnabled && (
                       <Slider 
                         label="Интенсивность" 
-                        value={config.card3DIntensity} 
+                        value={editConfig.card3DIntensity} 
                         onChange={(v) => setConfig({ card3DIntensity: v })} 
                         min={5} 
                         max={30} 
                         unit="deg" 
-                        color={config.primaryColor} 
+                        color={editConfig.primaryColor} 
                       />
                     )}
                   </Section>
@@ -657,40 +661,40 @@ export function SettingsPanel() {
                   <Section title="Стиль карточек" icon={Icons.background}>
                     <Slider 
                       label="Прозрачность" 
-                      value={config.cardOpacity} 
+                      value={editConfig.cardOpacity} 
                       onChange={(v) => setConfig({ cardOpacity: v })} 
                       unit="%" 
-                      color={config.primaryColor} 
+                      color={editConfig.primaryColor} 
                     />
                     <Slider 
                       label="Размытие" 
-                      value={config.cardBlur} 
+                      value={editConfig.cardBlur} 
                       onChange={(v) => setConfig({ cardBlur: v })} 
                       max={30} 
                       unit="px" 
-                      color={config.primaryColor} 
+                      color={editConfig.primaryColor} 
                     />
                     <Slider 
                       label="Обводка" 
-                      value={config.cardBorderOpacity} 
+                      value={editConfig.cardBorderOpacity} 
                       onChange={(v) => setConfig({ cardBorderOpacity: v })} 
                       unit="%" 
-                      color={config.primaryColor} 
+                      color={editConfig.primaryColor} 
                     />
                   </Section>
 
                   <Section title="Эффекты" icon={Icons.effects}>
                     <Toggle 
                       label="Свечение аватара" 
-                      checked={config.glowEnabled} 
+                      checked={editConfig.glowEnabled} 
                       onChange={(v) => setConfig({ glowEnabled: v })} 
-                      color={config.primaryColor} 
+                      color={editConfig.primaryColor} 
                     />
                     <Toggle 
                       label="Шум поверх" 
                       checked={config.noiseEnabled} 
                       onChange={(v) => setConfig({ noiseEnabled: v })} 
-                      color={config.primaryColor} 
+                      color={editConfig.primaryColor} 
                     />
                   </Section>
 
@@ -699,15 +703,15 @@ export function SettingsPanel() {
                       {cursorOptions.map((option) => (
                         <OptionButton
                           key={option.value}
-                          selected={config.cursorStyle === option.value}
+                          selected={editConfig.cursorStyle === option.value}
                           onClick={() => setConfig({ cursorStyle: option.value })}
-                          color={config.primaryColor}
+                          color={editConfig.primaryColor}
                         >
                           <span className="text-[10px]">{option.label}</span>
                         </OptionButton>
                       ))}
                     </div>
-                    {config.cursorStyle === 'custom' && (
+                    {editConfig.cursorStyle === 'custom' && (
                       <>
                         <button
                           onClick={() => cursorInputRef.current?.click()}
@@ -725,10 +729,10 @@ export function SettingsPanel() {
                       onClick={() => musicInputRef.current?.click()}
                       className="w-full px-4 py-3 rounded-lg text-sm border border-dashed border-white/20 flex items-center justify-center gap-2 hover:border-white/30 transition-all mb-3"
                     >
-                      {config.musicUrl ? (
+                      {editConfig.musicUrl ? (
                         <span className="flex items-center gap-2">
                           <span className="text-green-400">{Icons.music}</span>
-                          {config.musicTitle || 'Трек загружен'}
+                          {editConfig.musicTitle || 'Трек загружен'}
                         </span>
                       ) : (
                         <>{Icons.upload} Загрузить MP3</>
@@ -736,27 +740,27 @@ export function SettingsPanel() {
                     </button>
                     <input ref={musicInputRef} type="file" accept="audio/*" className="hidden" onChange={(e) => handleFileUpload(e, 'music')} />
 
-                    {config.musicUrl && (
+                    {editConfig.musicUrl && (
                       <div className="space-y-3 pt-3 border-t border-white/5">
                         <input
                           type="text"
-                          value={config.musicTitle}
+                          value={editConfig.musicTitle}
                           onChange={(e) => setConfig({ musicTitle: e.target.value })}
                           placeholder="Название трека"
                           className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm"
                         />
                         <Toggle 
                           label="Автовоспроизведение" 
-                          checked={config.musicAutoPlay} 
+                          checked={editConfig.musicAutoPlay} 
                           onChange={(v) => setConfig({ musicAutoPlay: v })} 
-                          color={config.primaryColor} 
+                          color={editConfig.primaryColor} 
                         />
                         <Slider 
                           label="Громкость" 
-                          value={config.musicVolume} 
+                          value={editConfig.musicVolume} 
                           onChange={(v) => setConfig({ musicVolume: v })} 
                           unit="%" 
-                          color={config.primaryColor} 
+                          color={editConfig.primaryColor} 
                         />
                         <button 
                           onClick={() => setConfig({ musicUrl: '', musicTitle: '' })} 
@@ -773,14 +777,14 @@ export function SettingsPanel() {
               {/* Links Tab */}
               {activeTab === 'links' && (
                 <>
-                  {config.links.map((link, index) => (
+                  {editConfig.links.map((link, index) => (
                     <Section key={link.id} title={`Ссылка ${index + 1}`} icon={Icons.links}>
                       <div className="flex items-center justify-between mb-3">
                         <Toggle 
                           label="Активна" 
                           checked={link.enabled} 
                           onChange={(v) => updateLink(link.id, { enabled: v })} 
-                          color={config.primaryColor} 
+                          color={editConfig.primaryColor} 
                         />
                         <button
                           onClick={() => deleteLink(link.id)}
@@ -869,7 +873,7 @@ export function SettingsPanel() {
                 }}
                 disabled={isLoading}
                 className="w-full py-3 rounded-xl text-white font-medium transition-all text-sm flex items-center justify-center gap-2 hover:scale-[1.02]"
-                style={{ background: config.primaryColor }}
+                style={{ background: editConfig.primaryColor }}
               >
                 {isLoading ? 'Сохранение...' : `${Icons.check} Сохранить на сервер`}
               </button>

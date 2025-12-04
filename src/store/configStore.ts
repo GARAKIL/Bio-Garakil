@@ -3,12 +3,16 @@ import { SiteConfig, defaultConfig } from '@/types/config';
 
 interface ConfigStore {
   config: SiteConfig;
+  draftConfig: SiteConfig; // Временные изменения (до сохранения)
   isSettingsOpen: boolean;
   isLoading: boolean;
   isAuthenticated: boolean;
   password: string;
   
   setConfig: (config: Partial<SiteConfig>) => void;
+  setDraftConfig: (config: Partial<SiteConfig>) => void;
+  resetDraft: () => void;
+  applyDraft: () => void;
   resetConfig: () => void;
   toggleSettings: () => void;
   setLoading: (loading: boolean) => void;
@@ -32,6 +36,7 @@ interface ConfigStore {
 
 export const useConfigStore = create<ConfigStore>()((set, get) => ({
   config: defaultConfig,
+  draftConfig: defaultConfig,
   isSettingsOpen: false,
   isLoading: false,
   isAuthenticated: false,
@@ -42,10 +47,34 @@ export const useConfigStore = create<ConfigStore>()((set, get) => ({
       config: { ...state.config, ...newConfig },
     })),
   
-  resetConfig: () => set({ config: defaultConfig }),
+  // Изменения в панели настроек идут в draft
+  setDraftConfig: (newConfig) =>
+    set((state) => ({
+      draftConfig: { ...state.draftConfig, ...newConfig },
+    })),
+  
+  // Сбросить draft к текущему config
+  resetDraft: () =>
+    set((state) => ({
+      draftConfig: { ...state.config },
+    })),
+  
+  // Применить draft к config (после успешного сохранения)
+  applyDraft: () =>
+    set((state) => ({
+      config: { ...state.draftConfig },
+    })),
+  
+  resetConfig: () => set({ config: defaultConfig, draftConfig: defaultConfig }),
   
   toggleSettings: () =>
-    set((state) => ({ isSettingsOpen: !state.isSettingsOpen })),
+    set((state) => {
+      // При открытии панели - копируем config в draft
+      if (!state.isSettingsOpen) {
+        return { isSettingsOpen: true, draftConfig: { ...state.config } };
+      }
+      return { isSettingsOpen: false };
+    }),
   
   setLoading: (loading) => set({ isLoading: loading }),
   
@@ -60,7 +89,8 @@ export const useConfigStore = create<ConfigStore>()((set, get) => ({
       const data = await response.json();
       
       if (data.success && data.data) {
-        set({ config: { ...defaultConfig, ...data.data } });
+        const loadedConfig = { ...defaultConfig, ...data.data };
+        set({ config: loadedConfig, draftConfig: loadedConfig });
       }
     } catch (error) {
       console.error('Failed to load config:', error);
@@ -70,20 +100,21 @@ export const useConfigStore = create<ConfigStore>()((set, get) => ({
   },
   
   saveConfigToServer: async () => {
-    const { config, password } = get();
+    const { draftConfig, password } = get();
     
     try {
       set({ isLoading: true });
       const response = await fetch('/api/config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password, config }),
+        body: JSON.stringify({ password, config: draftConfig }),
       });
       
       const data = await response.json();
       
       if (data.success) {
-        set({ isAuthenticated: true });
+        // Применяем draft к основному config только после успешного сохранения
+        set({ isAuthenticated: true, config: { ...draftConfig } });
         return { success: true };
       } else {
         return { success: false, error: data.error || 'Ошибка сохранения' };
