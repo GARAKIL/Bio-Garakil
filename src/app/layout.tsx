@@ -18,7 +18,7 @@ const spaceGrotesk = Space_Grotesk({
 })
 
 export const metadata: Metadata = {
-  title: 'Bio-GARAKIL',
+  title: 'GARAKIL',
   description: 'Personal bio page by GARAKIL',
   icons: {
     icon: '/favicon.svg',

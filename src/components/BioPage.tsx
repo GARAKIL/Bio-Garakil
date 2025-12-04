@@ -157,7 +157,7 @@ export function BioPage() {
   useEffect(() => {
     if (!mounted) return;
     
-    const text = 'Bio-GARAKIL';
+    const text = 'GARAKIL';
     let charIndex = 0;
     let isDeleting = false;
     
